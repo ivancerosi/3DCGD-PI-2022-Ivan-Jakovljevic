@@ -19,6 +19,9 @@ Last level contains emissive materials (molten material) which are set to static
 baked to produce reflected light effect
 ### Materials
 There are some custom textured materials such as concrete, metal box and ventilation. There are also three emissive materials.
+### Post-processing
+ViewModel gameobject contains a child Post-Processing Volume. The ViewModel is intended to hold users settings and between-scene information and is made
+to persist between scene changes.
 
 # Task 3:
 ## 3 different models of NPCs
