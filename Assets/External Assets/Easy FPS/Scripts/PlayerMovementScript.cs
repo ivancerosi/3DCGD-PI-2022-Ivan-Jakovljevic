@@ -17,6 +17,9 @@ public class PlayerMovementScript : MonoBehaviour, ITransferMovement {
 	[Tooltip("Position of the camera inside the player")]
 	[HideInInspector]public Vector3 cameraPosition;
 
+
+	Transform mainCamera;
+
 	/*
 	 * \\ Code for enabling moving platforms to transfer movement onto player standing on top
 	 */
@@ -48,6 +51,8 @@ public class PlayerMovementScript : MonoBehaviour, ITransferMovement {
 		bulletSpawn = cameraMain.Find ("BulletSpawn").transform;
 		ignoreLayer = 1 << LayerMask.NameToLayer ("Player");
 
+		mainCamera = transform.Find("Main Camera");
+
 	}
 	private Vector3 slowdownV;
 	private Vector2 horizontalMovement;
@@ -69,6 +74,8 @@ public class PlayerMovementScript : MonoBehaviour, ITransferMovement {
 		LadderLogic();
 
 		WallRunLogic();
+
+		StairsLogic();
 
 		grounded = false; // oncollisionstay will set this back to true before next FixedUpdate executes
 	}
@@ -96,31 +103,41 @@ public class PlayerMovementScript : MonoBehaviour, ITransferMovement {
 			rb.velocity = velo;
 		}
 	}
+
+	void StairsLogic()
+	{
+		bool stairsHit = false;
+		RaycastHit[] hits;
+		hits = Physics.RaycastAll(transform.position, transform.forward-transform.up);
+		foreach (RaycastHit _hit in hits)
+		{
+			if (stairsHit) break;
+			if (grounded && _hit.collider.tag == "Stairs")
+			{
+				float mag = rb.velocity.magnitude;
+				if (mag > maxSpeed * 0.9f)
+				{
+					float normalizer = mag / (maxSpeed * 0.9f);
+					rb.velocity = new Vector3(rb.velocity.x / normalizer, rb.velocity.y / normalizer, rb.velocity.z / normalizer);
+				}
+				stairsHit = true;
+				if (grounded&Input.GetAxis("Vertical") > 0f) rb.velocity += new Vector3(0f, 0.2f, 0f);
+			}
+		}
+}
+
+	
 	bool walljumpReady = false;
 	float walljumpDuration = 0f;
 	float walljumpCooldown = 0f;
-	bool wallRunReset=true;
-	bool wallCollision = false;
+	bool firstRun = true;
+	Vector3 wallRunVec;
+
 	void WallRunLogic()
     {
-		void doWallRun(float rotation)
-        {
-			cameraMain.Rotate(new Vector3(0, 0, rotation));
-			rb.useGravity = false;
-
-			rb.AddForce(transform.right);
-
-			if (wallRunReset)
-			{
-				Vector3 velocity = rb.velocity;
-				velocity.y = 0;
-				rb.velocity = velocity;
-				rb.AddForce(new Vector3(0, 4, 0));
-			}
-			walljumpDuration += Time.deltaTime;
-			wallRunReset = false;
-		}
-
+		Debug.DrawRay(transform.position, transform.forward*6, Color.blue);
+		Debug.DrawRay(transform.position, transform.right, Color.blue);
+		Debug.DrawRay(transform.position, transform.right, Color.blue);
 		walljumpReady = Input.GetKey(KeyCode.Space);
 		if (!walljumpReady || isOnLadders || walljumpCooldown>0f)
         {
@@ -129,57 +146,66 @@ public class PlayerMovementScript : MonoBehaviour, ITransferMovement {
 			walljumpCooldown = Mathf.Max(walljumpCooldown, 0);
 			return;
         }
-		if (!grounded && walljumpDuration<3.0f)
+		Debug.Log("WJ: passed first check");
+		Debug.Log($"WJ: grounded:{grounded} walljumpDuration:{walljumpDuration} velocity:{rb.velocity.magnitude}");
+		bool waitForJump = firstRun && Mathf.Abs(rb.velocity.y) > 0.5;
+		if (!waitForJump && !grounded && walljumpDuration<3.0f && rb.velocity.magnitude>=maxSpeed/2 && Input.GetAxis("Vertical")>0)
 		{
+			Debug.Log("WJ: passed second check");
+
+			walljumpDuration += Time.deltaTime;
+
 			RaycastHit forwardHit;
 			bool somethingIsForward = Physics.Raycast(transform.position, transform.forward, out forwardHit, 6f);
-
+			if ((!somethingIsForward || !forwardHit.transform.name.Contains("Wall")) && firstRun) {
+				walljumpCooldown = 2f;
+				return;
+            }
+			Debug.Log("WJ: got forward hit");
+			string rotateDirection = "clockwise";
 			RaycastHit wallInfo;
-			if (Physics.Raycast(transform.position, transform.right * -1f, out wallInfo, 6f) && wallInfo.transform)
+			if (!Physics.Raycast(transform.position, transform.right * -1f, out wallInfo, 1.5f) || !wallInfo.transform.name.Contains("Wall"))
             {
-				if (wallInfo.transform.gameObject.tag=="LevelPart" && wallInfo.distance<=1f)
+				Debug.Log("WJ: No hit left");
+				rotateDirection = "counterclockwise";
+				if (!Physics.Raycast(transform.position, transform.right, out wallInfo, 1.5f) || !wallInfo.transform.name.Contains("Wall"))
                 {
-					doWallRun(-30);
+					Debug.Log("WJ: No hit right");
+					walljumpDuration = 0f;
+					firstRun = true;
+					rb.useGravity = true;
 					return;
                 }
-				else if (somethingIsForward && wallInfo.transform.gameObject.tag == "LevelPart")
-				{
-					float a = forwardHit.distance;
-					float b = wallInfo.distance;
-					float d = (forwardHit.point - wallInfo.point).magnitude;
-					float v = (a * b) / d;
-					if (v<=1f)
-                    {
-						doWallRun(-30);
-                    }
-				}
 			}
-			if (Physics.Raycast(transform.position, transform.right, out wallInfo, 6f) && wallInfo.transform)
+			Debug.Log($"WJ: Got hit {wallInfo.transform.name}");
+			float angleDelta = 90- Mathf.Rad2Deg*Mathf.Atan2(forwardHit.distance, wallInfo.distance);
+			if (rotateDirection=="clockwise") {
+				Debug.Log("WJ: got wall hit left");
+				rb.velocity = Quaternion.Euler(0,360-angleDelta,0)*rb.velocity;
+			}
+			if (rotateDirection=="counterclockwise")
+            {
+				Debug.Log("WJ: got wall hit right");
+				rb.velocity = Quaternion.Euler(0, angleDelta, 0) * rb.velocity;
+            }
+			if (firstRun)
 			{
-				if (wallInfo.transform.gameObject.tag == "LevelPart" && wallInfo.distance<=1f)
-				{
-					doWallRun(30);
-					return;
-				}
-				else if (somethingIsForward && wallInfo.transform.gameObject.tag=="LevelPart")
-                {
-					float a = forwardHit.distance;
-					float b = wallInfo.distance;
-					float d = (forwardHit.point - wallInfo.point).magnitude;
-					float v = (a * b) / d;
-					if (v <= 1f)
-					{
-						doWallRun(30);
-					}
-				}
+				wallRunVec = new Vector3(rb.velocity.x, 0, rb.velocity.z);
+				firstRun = false;
 			}
+			rb.velocity = wallRunVec;
+			Debug.Log($"WJ: velocity is {rb.velocity}");
+			rb.useGravity = false;
+
 		}
-		walljumpDuration = 0f;
-		float angle = cameraMain.eulerAngles.z;
-		cameraMain.Rotate(new Vector3(0,0,-angle));
-		rb.useGravity = true;
-		walljumpCooldown = 1.0f;
-		wallRunReset = true;
+		else
+        {
+			Debug.Log($"WJ: failed second check waitForJump:{waitForJump}");
+			walljumpDuration = 1.0f;
+			firstRun = true;
+			rb.useGravity = true;
+		}
+		
     }
 
 	/*
@@ -187,6 +213,7 @@ public class PlayerMovementScript : MonoBehaviour, ITransferMovement {
 	* If player leaves keys it will deaccelerate
 	*/
 	void PlayerMovementLogic(){
+		bool blockedForward = Physics.Raycast(transform.position, transform.forward, 1f);
 
 		currentSpeed = rb.velocity.magnitude;
 		horizontalMovement = new Vector2 (rb.velocity.x, rb.velocity.z);
@@ -205,11 +232,12 @@ public class PlayerMovementScript : MonoBehaviour, ITransferMovement {
 				ref slowdownV,
 				deaccelerationSpeed);
 		}
+		float forwardForce = Input.GetAxis("Vertical") * accelerationSpeed * Time.deltaTime;
+		if (forwardForce > 0 && blockedForward) forwardForce = 0;
 		if (grounded) {
-			rb.AddRelativeForce (Input.GetAxis ("Horizontal") * accelerationSpeed * Time.deltaTime, 0, Input.GetAxis ("Vertical") * accelerationSpeed * Time.deltaTime);
+			rb.AddRelativeForce (Input.GetAxis ("Horizontal") * accelerationSpeed * Time.deltaTime, 0, forwardForce);
 		} else {
-			rb.AddRelativeForce (Input.GetAxis ("Horizontal") * accelerationSpeed / 2 * Time.deltaTime, 0, Input.GetAxis ("Vertical") * accelerationSpeed / 2 * Time.deltaTime);
-
+			rb.AddRelativeForce (Input.GetAxis ("Horizontal") * accelerationSpeed / 2 * Time.deltaTime, 0, forwardForce/2);
 		}
 		/*
 		 * Slippery issues fixed here
@@ -228,9 +256,15 @@ public class PlayerMovementScript : MonoBehaviour, ITransferMovement {
 		if (Input.GetKeyDown (KeyCode.Space) && grounded) {
 			rb.AddRelativeForce (Vector3.up * jumpForce);
 			if (_jumpSound)
-				_jumpSound.Play ();
+			{
+				if (!ViewModel.Instance.paused)
+				{
+					_jumpSound.volume = ViewModel.Instance.sfxVolume;
+					_jumpSound.Play();
+				}
+			}
 			else
-				print ("Missig jump sound.");
+				print("Missig jump sound.");
 			_walkSound.Stop ();
 			_runSound.Stop ();
 		}
@@ -251,6 +285,8 @@ public class PlayerMovementScript : MonoBehaviour, ITransferMovement {
 
 		WalkingSound ();
 
+		Debug.DrawRay(transform.position, transform.forward-transform.up, Color.red, 0.1f);
+
 
 	}//end update
 
@@ -264,14 +300,22 @@ public class PlayerMovementScript : MonoBehaviour, ITransferMovement {
 					// if shift is not pressed->maxSpeed==3->play walk and stop playing run
 					if (maxSpeed == 3) {
 						if (!_walkSound.isPlaying) {
-							_walkSound.Play ();
+							if (!ViewModel.Instance.paused)
+							{
+								_walkSound.volume = ViewModel.Instance.sfxVolume;
+								_walkSound.Play();
+							}
 							_runSound.Stop ();
 						}					
 					// if shift is pressed->maxSpeed==5->play run sound and stop playing walk
 					} else if (maxSpeed == 5) {
 						if (!_runSound.isPlaying) {
 							_walkSound.Stop ();
-							_runSound.Play ();
+							if (!ViewModel.Instance.paused)
+							{
+								_runSound.volume = ViewModel.Instance.sfxVolume;
+								_runSound.Play();
+							}
 						}
 					}
 				// if not moving fast enough do not play any movement sound
@@ -384,7 +428,6 @@ public class PlayerMovementScript : MonoBehaviour, ITransferMovement {
 	void OnCollisionExit ()
 	{
 		grounded = false;
-		wallCollision = false;
 	}
 
 
@@ -494,9 +537,15 @@ public class PlayerMovementScript : MonoBehaviour, ITransferMovement {
 			GunScript.HitMarkerSound ();
 
 			if (_hitSound)
-				_hitSound.Play ();
+			{
+				if (!ViewModel.Instance.paused)
+				{
+					_hitSound.volume = ViewModel.Instance.sfxVolume;
+					_hitSound.Play();
+				}
+			}
 			else
-				print ("Missing hit sound");
+				print("Missing hit sound");
 			
 			if (!swordHitWithGunOrNot) {
 				if (bloodEffect)

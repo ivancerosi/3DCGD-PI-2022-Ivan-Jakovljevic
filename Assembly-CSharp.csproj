@@ -56,36 +56,58 @@
     <Analyzer Include="C:\Program Files (x86)\Microsoft Visual Studio Tools for Unity\16.0\Analyzers\Microsoft.Unity.Analyzers.dll" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Assets\Scripts\TestState.cs" />
     <Compile Include="Assets\Scripts\MenuControl.cs" />
+    <Compile Include="Assets\Scripts\State\GhoulAttackScript.cs" />
     <Compile Include="Assets\Scripts\WolfController.cs" />
+    <Compile Include="Assets\Scripts\FlickController.cs" />
     <Compile Include="Assets\Scripts\Interfaces\IHitable.cs" />
+    <Compile Include="Assets\Scripts\GhoulDeathScript.cs" />
+    <Compile Include="Assets\Scripts\BehaviorTree\IEvaluate.cs" />
     <Compile Include="Assets\Scripts\Utils.cs" />
+    <Compile Include="Assets\Scripts\State\WolfLeapState.cs" />
     <Compile Include="Assets\External Assets\Easy FPS\Scripts\PlayerMovementScript.cs" />
     <Compile Include="Assets\External Assets\Easy FPS\Scripts\BulletScript.cs" />
     <Compile Include="Assets\External Assets\Easy FPS\Scripts\GunScript.cs" />
     <Compile Include="Assets\External Assets\LB3D\CrabMonster\LB3DGameManager.cs" />
+    <Compile Include="Assets\Scripts\TestGhoulStand.cs" />
     <Compile Include="Assets\Scripts\SoundManager.cs" />
     <Compile Include="Assets\External Assets\Easy FPS\Scripts\MouseLookScript.cs" />
     <Compile Include="Assets\External Assets\LB3D\CrabMonster\Scripts\Rikayon.cs" />
+    <Compile Include="Assets\Scripts\Init.cs" />
     <Compile Include="Assets\External Assets\Easy FPS\Scripts\DestroyAfterTimeParticle.cs" />
+    <Compile Include="Assets\Scripts\ConveyorDespawn.cs" />
+    <Compile Include="Assets\Scripts\State\GhoulController.cs" />
     <Compile Include="Assets\Scripts\MonsterController.cs" />
+    <Compile Include="Assets\Scripts\State\WolfDeadState.cs" />
+    <Compile Include="Assets\Scripts\BehaviorTree\Selector.cs" />
     <Compile Include="Assets\External Assets\Easy FPS\Scripts\GunInventory.cs" />
+    <Compile Include="Assets\Scripts\RotateScript.cs" />
     <Compile Include="Assets\Scripts\PlayerHealth.cs" />
+    <Compile Include="Assets\Scripts\LavaRespawn.cs" />
     <Compile Include="Assets\Scripts\ZombieController.cs" />
     <Compile Include="Assets\Scripts\Interfaces\ITransferMovement.cs" />
+    <Compile Include="Assets\PostProcessingScript.cs" />
+    <Compile Include="Assets\Scripts\ActivatePlayerScript.cs" />
     <Compile Include="Assets\Scripts\MainMenu.cs" />
+    <Compile Include="Assets\Scripts\BehaviorTree\Sequence.cs" />
     <Compile Include="Assets\Scripts\TakeDamageScript.cs" />
+    <Compile Include="Assets\Scripts\State\WolfIdleState.cs" />
     <Compile Include="Assets\Scripts\LadderScript.cs" />
     <Compile Include="Assets\Scripts\EndTrigger.cs" />
+    <Compile Include="Assets\Scripts\ConveyorScript.cs" />
     <Compile Include="Assets\Scripts\PlatformMover.cs" />
+    <Compile Include="Assets\Scripts\BehaviorTree\Node.cs" />
+    <Compile Include="Assets\Scripts\TestGhoulRun.cs" />
     <Compile Include="Assets\Scripts\JumpController.cs" />
+    <Compile Include="Assets\Scripts\State\WolfChaseState.cs" />
     <Compile Include="Assets\Scripts\ViewModel.cs" />
-    <Compile Include="Assets\Scripts\RotateScript.cs" />
-    <Compile Include="Assets\Scripts\FlickController.cs" />
+    <Compile Include="Assets\Scripts\State\GhoulIdleScript.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Assets\External Assets\SpaceZeta_Spotlight\Info.txt" />
     <None Include="Assets\External Assets\LB3D\CrabMonster\DOCUMENTATION.txt" />
+    <None Include="Assets\StoneWalls\readme.txt" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="UnityEngine">
@@ -751,14 +773,17 @@
     <Reference Include="Unity.ProBuilder.Editor">
       <HintPath>Library\ScriptAssemblies\Unity.ProBuilder.Editor.dll</HintPath>
     </Reference>
+    <Reference Include="Unity.Postprocessing.Editor">
+      <HintPath>Library\ScriptAssemblies\Unity.Postprocessing.Editor.dll</HintPath>
+    </Reference>
     <Reference Include="UnityEditor.UI">
       <HintPath>Library\ScriptAssemblies\UnityEditor.UI.dll</HintPath>
     </Reference>
-    <Reference Include="Unity.PlasticSCM.Editor">
-      <HintPath>Library\ScriptAssemblies\Unity.PlasticSCM.Editor.dll</HintPath>
-    </Reference>
     <Reference Include="Unity.Rider.Editor">
       <HintPath>Library\ScriptAssemblies\Unity.Rider.Editor.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.PlasticSCM.Editor">
+      <HintPath>Library\ScriptAssemblies\Unity.PlasticSCM.Editor.dll</HintPath>
     </Reference>
     <Reference Include="Unity.VisualScripting.Flow">
       <HintPath>Library\ScriptAssemblies\Unity.VisualScripting.Flow.dll</HintPath>
@@ -781,6 +806,9 @@
     <Reference Include="Unity.Services.Core.Analytics">
       <HintPath>Library\ScriptAssemblies\Unity.Services.Core.Analytics.dll</HintPath>
     </Reference>
+    <Reference Include="Unity.Postprocessing.Runtime">
+      <HintPath>Library\ScriptAssemblies\Unity.Postprocessing.Runtime.dll</HintPath>
+    </Reference>
     <Reference Include="Unity.ProBuilder.AssetIdRemapUtility">
       <HintPath>Library\ScriptAssemblies\Unity.ProBuilder.AssetIdRemapUtility.dll</HintPath>
     </Reference>
@@ -801,12 +829,6 @@
     </Reference>
     <Reference Include="Unity.VisualScripting.State">
       <HintPath>Library\ScriptAssemblies\Unity.VisualScripting.State.dll</HintPath>
-    </Reference>
-    <Reference Include="Unity.Postprocessing.Editor">
-      <HintPath>Library\ScriptAssemblies\Unity.Postprocessing.Editor.dll</HintPath>
-    </Reference>
-    <Reference Include="Unity.Postprocessing.Runtime">
-      <HintPath>Library\ScriptAssemblies\Unity.Postprocessing.Runtime.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>

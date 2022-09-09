@@ -29,16 +29,49 @@ public class SoundManager : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.Escape)) StopPlayingExcept(0);
     }
 
+    public void PlayBite()
+    {
+        PlaySound(2);
+    }
     void PlaySound(int sounditem)
     {
-        if (!ViewModel.Instance.paused) return;
-        if (sounditem == 1) sound1.Play();
-        if (sounditem == 2) sound2.Play();
-        if (sounditem == 3) sound3.Play();
-        if (sounditem == 4) sound4.Play();
-        if (sounditem == 5) sound5.Play();
-        if (sounditem == 6) sound6.Play();
-        if (sounditem == 7) sound7.Play();
+        if (ViewModel.Instance.paused) return;
+        //Debug.Log(Time.time + ": playing sound " + sounditem);
+        if (sounditem == 1)
+        {
+            sound1.volume = ViewModel.Instance.sfxVolume;
+            sound1.Play();
+        }
+        if (sounditem == 2)
+        {
+            sound2.volume = ViewModel.Instance.sfxVolume;
+            sound2.Play();
+        }
+        if (sounditem == 3)
+        {
+            sound3.volume = ViewModel.Instance.sfxVolume;
+            sound3.Play();
+        }
+        if (sounditem == 4)
+        {
+            sound4.volume = ViewModel.Instance.sfxVolume;
+            sound4.Play();
+        }
+        if (sounditem == 5)
+        {
+            sound5.volume = ViewModel.Instance.sfxVolume;
+            sound5.Play();
+        }
+        if (sounditem == 6)
+        {
+            sound6.volume = ViewModel.Instance.sfxVolume;
+            sound6.Play();
+        }
+        if (sounditem == 7)
+        {
+            sound7.volume = ViewModel.Instance.sfxVolume;
+            sound7.Play();
+        }
     }
 
     public void StopPlayingExcept(int sounditem)

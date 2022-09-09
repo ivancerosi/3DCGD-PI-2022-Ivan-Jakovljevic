@@ -29,7 +29,6 @@ public class MonsterController : MonoBehaviour, IHitable
     public void Hit(int damage)
     {
         health -= damage;
-        Debug.Log("health:" + health);
         if (health <= 0) state = State.DIE;
         else if (state == State.SLEEP) state = State.AWAKE;
        // animator.SetBool("takeDamage", true);
@@ -80,7 +79,10 @@ public class MonsterController : MonoBehaviour, IHitable
     float WAIT = 0.5f;
     void doAwake()
     {
-        if (rb.useGravity==false) Jump();
+        if (rb.useGravity == false)
+        {
+            Jump();
+        }
         RaycastHit hitinfo;
         if (groundHit && timePassed>=WAIT)
         {
@@ -88,7 +90,10 @@ public class MonsterController : MonoBehaviour, IHitable
             state = State.ATTACK;
             return;
         }
-        if (groundHit) timePassed += Time.deltaTime;
+        if (groundHit)
+        {
+            timePassed += Time.deltaTime;
+        }
         if (Physics.Raycast(transform.position, Vector3.up*-1,out hitinfo,2))
         {
             if (hitinfo.transform.tag=="LevelPart")
@@ -140,6 +145,8 @@ public class MonsterController : MonoBehaviour, IHitable
         }
     }
 
+
+
     void FixedUpdate()
     {
         if (state==State.SLEEP) doSleep();
@@ -147,6 +154,9 @@ public class MonsterController : MonoBehaviour, IHitable
         else if (state == State.DIE) doDie();
         else if (state == State.AWAKE) doAwake();
     }
+
+
+
 
     private void OnCollisionEnter(Collision collision)
     {

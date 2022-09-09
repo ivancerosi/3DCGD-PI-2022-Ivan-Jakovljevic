@@ -10,6 +10,7 @@ TagManager:
   - Platform
   - LevelPart
   - PatrolPoint
+  - Stairs
   layers:
   - Default
   - TransparentFX
@@ -38,7 +39,7 @@ TagManager:
   - 
   - 
   - 
-  - 
+  - Stairs
   - 
   - 
   - Post-Process

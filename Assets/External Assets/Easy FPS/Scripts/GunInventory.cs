@@ -124,9 +124,12 @@ public class GunInventory : MonoBehaviour {
 	 */
 	IEnumerator Spawn(int _redniBroj){
 		if (weaponChanging && !ViewModel.Instance.paused)
-			weaponChanging.Play ();
+		{
+			weaponChanging.volume = ViewModel.Instance.sfxVolume;
+			weaponChanging.Play();
+		}
 		else
-			print ("Missing Weapon Changing music clip.");
+			print("Missing Weapon Changing music clip.");
 		if(currentGun){
 			if(currentGun.name.Contains("Gun")){
 

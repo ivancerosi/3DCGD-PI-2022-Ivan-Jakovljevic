@@ -407,7 +407,10 @@ public class GunScript : MonoBehaviour {
 	*/
 	public static void HitMarkerSound(){
 		if (!ViewModel.Instance.paused)
-		hitMarker.Play();
+		{
+			hitMarker.volume = ViewModel.Instance.sfxVolume;
+			hitMarker.Play();
+		}
 	}
 
 	[Tooltip("Array of muzzel flashes, randmly one will appear after each bullet.")]
@@ -436,9 +439,15 @@ public class GunScript : MonoBehaviour {
 				holdFlash = Instantiate(muzzelFlash[randomNumberForMuzzelFlash], muzzelSpawn.transform.position /*- muzzelPosition*/, muzzelSpawn.transform.rotation * Quaternion.Euler(0,0,90) ) as GameObject;
 				holdFlash.transform.parent = muzzelSpawn.transform;
 				if (shoot_sound_source)
-					shoot_sound_source.Play ();
+				{
+					if (!ViewModel.Instance.paused)
+					{
+						shoot_sound_source.volume = ViewModel.Instance.sfxVolume;
+						shoot_sound_source.Play();
+					}
+				}
 				else
-					print ("Missing 'Shoot Sound Source'.");
+					print("Missing 'Shoot Sound Source'.");
 
 				RecoilMath();
 
@@ -471,9 +480,15 @@ public class GunScript : MonoBehaviour {
 
 			if (reloadSound_source.isPlaying == false && reloadSound_source != null) {
 				if (reloadSound_source)
-					reloadSound_source.Play ();
+				{
+					if (!ViewModel.Instance.paused)
+					{
+						reloadSound_source.volume = ViewModel.Instance.sfxVolume;
+						reloadSound_source.Play();
+					}
+				}
 				else
-					print ("'Reload Sound Source' missing.");
+					print("'Reload Sound Source' missing.");
 			}
 		
 
@@ -486,10 +501,16 @@ public class GunScript : MonoBehaviour {
 			yield return new WaitForSeconds (reloadChangeBulletsTime - 0.5f);//minus ovo vrijeme cekanja na yield
 			if (meeleAttack == false && pmS.maxSpeed != runningSpeed) {
 				//print ("tu sam");
-				if (player.GetComponent<PlayerMovementScript> ()._freakingZombiesSound)
-					player.GetComponent<PlayerMovementScript> ()._freakingZombiesSound.Play ();
+				if (player.GetComponent<PlayerMovementScript>()._freakingZombiesSound)
+				{
+					if (!ViewModel.Instance.paused)
+					{
+						player.GetComponent<PlayerMovementScript>()._freakingZombiesSound.volume=ViewModel.Instance.sfxVolume;
+						player.GetComponent<PlayerMovementScript>()._freakingZombiesSound.Play();
+					}
+				}
 				else
-					print ("Missing Freaking Zombies Sound");
+					print("Missing Freaking Zombies Sound");
 				
 				if (bulletsIHave - amountOfBulletsPerLoad >= 0) {
 					bulletsIHave -= amountOfBulletsPerLoad - bulletsInTheGun;

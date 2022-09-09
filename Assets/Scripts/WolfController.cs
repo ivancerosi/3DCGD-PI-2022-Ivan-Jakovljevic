@@ -1,10 +1,19 @@
-using System.Collections;
+using System.Collections;       
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
 
 public class WolfController : MonoBehaviour, IHitable
 {
+    public bool hasLeaped = false;
+
+    public float minLeapDistance = 5f;
+    public float maxLeapDistance = 20f;
+
+    public float leapPrepareDuration = 150f;
+    public float leapDuration = 1f;
+
+
     enum State
     {
         IDLE, ATTACK, DEAD, LEAP
@@ -12,23 +21,26 @@ public class WolfController : MonoBehaviour, IHitable
 
     public void Hit(int damage)
     {
+        animator.SetBool("isHit", true);
         health -= damage;
         if (health<=0)
         {
-            state = State.DEAD;
-        } else
-        {
-            state = State.ATTACK;
+            animator.Play("Dead");
         }
     }
 
     State state = State.IDLE;
 
+    public float attackCd=2;
+
     public int health = 100;
-    public float attackRange = 3;
+    public int attackRange = 3;
     public float detectRange = 20;
     public float leapRange = 6;
     public int leapForce = 10;
+    public int damage = 20;
+
+    public float despawnTime = 10f;
 
     Animator animator;
     Rigidbody rigidbody;
@@ -37,9 +49,133 @@ public class WolfController : MonoBehaviour, IHitable
     Rigidbody playerRigidbody;
     BoxCollider collider;
 
+    IHitable playerHitable;
+
+    Selector behaviorTreeRoot;
+
     SoundManager soundManager;
 
     Vector3 startPos;
+
+    public void runBehaviorTree()
+    {
+        behaviorTreeRoot.evaluate();
+    }
+
+    public struct BTreeConditionsStruct
+    {
+        public bool isPreparingLeap;
+        public bool isLeaping;
+        public float evadeActionDuration;
+        public float evadeActionMaxDuration;
+    };
+
+    BTreeConditionsStruct BTreeConditions = new BTreeConditionsStruct() {
+        isPreparingLeap = false,
+        isLeaping = false,
+        evadeActionDuration = 2,
+        evadeActionMaxDuration = 2,
+    };
+
+    public WolfController()
+    {
+        behaviorTreeRoot = new Selector();
+
+        Sequence evadeSequence = new Sequence();
+        behaviorTreeRoot.nodes.AddLast(evadeSequence);
+
+        Node playerAimingAtMe = new Node(delegate() {
+            Vector3 playerVector = transform.position - playerTransform.position;
+            if (animator.GetBool("leaping")) return Node.STATE.FAILURE;
+            if (playerVector.magnitude <= attackRange * 2f)
+            {
+                return Node.STATE.FAILURE;
+            }
+            Vector3 aimVector = playerTransform.forward;
+
+            float aimProjection = Vector3.Project(playerVector, aimVector).magnitude;
+            aimProjection = playerVector.magnitude - aimProjection;
+            if (aimProjection <= 1)
+            {
+                return Node.STATE.SUCCESS;
+            }
+            return Node.STATE.FAILURE;
+        });
+        evadeSequence.nodes.AddLast(playerAimingAtMe);
+
+        Node increaseTransversalSpeed = new Node(delegate() {
+            BTreeConditions.evadeActionDuration += Time.deltaTime;
+            if (BTreeConditions.evadeActionDuration < BTreeConditions.evadeActionMaxDuration) {
+                return Node.STATE.SUCCESS;
+            }
+            Vector3 playerDirection = playerTransform.position - transform.position;
+            playerDirection.y = 0;
+            int direction = Random.Range(0, 2);
+            Vector3 evadeDirection = playerDirection.normalized * nav.speed * BTreeConditions.evadeActionMaxDuration * 1.05f;
+            float rotationAmount = 60 + 240 * direction;
+            evadeDirection = Quaternion.Euler(0, rotationAmount, 0) * evadeDirection;
+            Vector3 evadePosition = transform.position + evadeDirection;
+            
+            NavMeshPath path=new NavMeshPath();
+            nav.CalculatePath(evadePosition, path);
+
+            BTreeConditions.evadeActionDuration = 0f;
+
+
+        if (path.corners.Length <= 1 || (transform.position - path.corners[path.corners.Length - 1]).magnitude<nav.speed)
+            {
+                if (rotationAmount==60) evadeDirection = Quaternion.Euler(240, 0, 0) * evadeDirection;
+                if (rotationAmount == 300) evadeDirection = Quaternion.Euler(120, 0, 0) * evadeDirection;
+                evadeDirection = transform.position + evadePosition;
+                nav.CalculatePath(evadePosition, path);
+                if (path.corners.Length <= 1 || (transform.position - path.corners[path.corners.Length - 1]).magnitude < nav.speed)
+                {
+                    return Node.STATE.FAILURE;
+                }
+            }
+            nav.destination = evadePosition;
+            return Node.STATE.SUCCESS;
+        });
+        evadeSequence.nodes.AddLast(increaseTransversalSpeed);
+
+        Sequence leapSequence = new Sequence();
+        behaviorTreeRoot.nodes.AddLast(leapSequence);
+        Node checkRangeAndLos = new Node(delegate () {
+            if (animator.GetBool("leaping")) return Node.STATE.SUCCESS;
+            float distance = (playerTransform.position - transform.position).magnitude;
+            if (distance > 100 || distance < 7) return Node.STATE.FAILURE;
+            if (!Utils.canAttack(transform.position, playerTransform.position, 100, "Player")) return Node.STATE.FAILURE;
+            return Node.STATE.SUCCESS;
+        });
+        leapSequence.nodes.AddLast(checkRangeAndLos);
+
+        Node doLeap = new Node(delegate() {
+            animator.SetBool("leaping",true);
+            return Node.STATE.SUCCESS;
+        });
+        leapSequence.nodes.AddLast(doLeap);        
+
+        Sequence attackSequence = new Sequence();
+        behaviorTreeRoot.nodes.AddLast(attackSequence);
+
+        Node canAttack = new Node(delegate () {
+            if (Utils.canAttack(transform.position, playerTransform.position, attackRange, "Player")) return Node.STATE.SUCCESS;
+            return Node.STATE.FAILURE;
+        });
+        attackSequence.nodes.AddLast(canAttack);
+
+        Node attack = new Node(delegate () {
+            nav.SetDestination(playerTransform.position);
+            return Node.STATE.SUCCESS;
+        });
+        attackSequence.nodes.AddLast(attack);
+
+        Node approach = new Node(delegate () {
+            nav.SetDestination(playerTransform.position);
+            return Node.STATE.SUCCESS;
+        });
+        behaviorTreeRoot.nodes.AddLast(approach);
+    }
 
     private void Awake()
     {
@@ -51,6 +187,8 @@ public class WolfController : MonoBehaviour, IHitable
         playerRigidbody = playerTransform.GetComponent<Rigidbody>();
         collider = GetComponent<BoxCollider>();
         soundManager = GetComponent<SoundManager>();
+
+        playerHitable = playerTransform.GetComponent<IHitable>();
     }
 
 
@@ -62,6 +200,11 @@ public class WolfController : MonoBehaviour, IHitable
     // Update is called once per frame
     void Update()
     {
+    }
+
+    public void Leaped()
+    {
+        hasLeaped = true;
     }
 
     void doIdle()
@@ -133,8 +276,6 @@ public class WolfController : MonoBehaviour, IHitable
         Vector3 targetPosition = playerTransform.position + new Vector3(playerRigidbody.velocity.x,0,playerRigidbody.velocity.z);
         transform.LookAt(new Vector2(targetPosition.x,targetPosition.z));
         transform.eulerAngles = new Vector3(0, transform.eulerAngles.y, transform.eulerAngles.z);
-        //rigidbody.AddForce((targetPosition-transform.position)*rigidbody.mass*70+new Vector3(0,rigidbody.mass*250,0));
-        //rigidbody.AddForce(transform.forward * rigidbody.mass * 70 + Vector3.up*rigidbody.mass*250);
         rigidbody.AddForce(transform.forward * rigidbody.mass * 70 * (playerTransform.position + playerRigidbody.velocity - transform.position).magnitude + new Vector3(0, rigidbody.mass * 250, 0));
 
         isLeaping = true;
@@ -145,8 +286,6 @@ public class WolfController : MonoBehaviour, IHitable
     bool isLeaping = false;
     bool tookOffGround = false;
     float startHeight;
-
-    Vector3 previousPlayerPos;
 
     void doLeap()
     {
@@ -203,11 +342,22 @@ public class WolfController : MonoBehaviour, IHitable
         }
     }
 
-    private void FixedUpdate()
+
+
+    public Animator getAnimator() { return this.animator; }
+    public Rigidbody getRigidbody() { return this.rigidbody; }
+
+    public Rigidbody getPlayerRigidbody() { return this.playerRigidbody; }
+    public Transform getPlayerTransform() { return this.playerTransform; }
+    public NavMeshAgent getNavMeshAgent() { return this.nav; }
+    public void UnHit()
     {
-        if (state == State.IDLE) doIdle();
-        else if (state == State.ATTACK) doAttack();
-        else if (state == State.DEAD) doDead();
-        else if (state == State.LEAP) doLeap();
+        animator.SetBool("isHit", false);
+    }
+
+    public void Bite()
+    {
+        soundManager.PlayBite();
+        playerHitable.Hit(damage);
     }
 }
